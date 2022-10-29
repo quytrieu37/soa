@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DatingApp.API.Controllers
 {
+    [Route("api/auth")]
+    [AllowAnonymous]
     public class AuthController : BaseController
     {
         private readonly DataContext _context;

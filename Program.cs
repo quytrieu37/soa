@@ -1,12 +1,17 @@
 using System.Text;
 using DatingApp.API.Data;
+using DatingApp.API.Data.Seed;
 using DatingApp.API.services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using AutoMapper;
+using DatingApp.API.Profiles;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
+
+
 var connectionString = builder.Configuration.GetConnectionString("Default");
 // Add services to the container.
 
@@ -28,6 +33,8 @@ services.AddDbContext<DataContext>(options =>
 //         .EnableDetailedErrors()
 // );
 services.AddScoped<ITokenService, TokenService>();
+services.AddScoped<IMemberService, MemberService>();
+services.AddAutoMapper(typeof(UserMapperProfile).Assembly);
 services.AddCors(options =>
             {
                 options.AddPolicy(name: "CorsPolicy",
@@ -57,6 +64,22 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 
 var app = builder.Build();
+
+using var scope = app.Services.CreateScope();
+var servicesProvider = scope.ServiceProvider;
+
+try 
+{
+    var context = servicesProvider.GetRequiredService<DataContext>();
+    context.Database.Migrate();
+    Seed.SeedUser(context);
+}
+catch (Exception)
+{
+    var logger = servicesProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogError("Failed");
+    throw;
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
